@@ -35,6 +35,16 @@ os.chdir(ROOT)
 #Sets home environmanet
 os.environ['HOME'] = ROOT
 
+comp_vars = ['datadate','fyearq','fqtr','rdq','atq','aul3q',
+             'aol2q','capr1q','seqq','ceqq','chq','cheq','ltq',
+             'deracq','deraltq','derlcq','derlltq','derhedglq',
+             'dlcq','dlttq','dvpq','prcraq','cshopq','cshoq',
+             'mkvaltq','epspiq','epspxq','epsf12','gdwlq','pstkq',
+             'dvpspq','pstkrq','oibdpq','oiadpq','nopiq','dpq',
+             'niq','piq','ibq','nimq','niitq','xintq','revtq',
+             'cogsq','xsgaq','tieq','tiiq','txdiq','txdbaq',
+             'txpq','txtq','txditcq','costat','capxy','intanq',
+             'prstkcy','aqcy','dvy','gvkey']
 '''
 #Exploratory
 print(DB.list_libraries())
@@ -85,60 +95,61 @@ def merge_crsp_comp(client):
 
     return final_dataset
 
-def merge_crsp_comp_read_sql_query(connection):
-    '''This is a temporary test ot make sure I can pull from the WRDS tables'''
-    print("Starting Merge")
-    merged_data = pd.read_sql_query("""
-                               select distinct a.*, b.*
-                               from crsp_monthly as a,
-                               crsp_headings as b
-                               on a.permno = b.permno
-                               	where a.permno = b.permno
-                                and (a.date >= b.begdat)
-                                and (a.date <= b.enddat)
-                                and (a.date >= '1980-01-01') 
-	                            and (a.date <= '2018-12-31');
-                                """,
-                                connection)
-    merged_data.to_csv(FINAL_DATA_PATH, index=False)
-
 def pull_raw():
     '''Pulls raw data from WRDS and uploads it SQL lite database'''
     # Create/Connect to the database
     conn = sqlite3.connect(SQLITE_FILE)
     # Set the cursor
     cur = conn.cursor()
+
     # Add all of the data needed necessary to do the CRSP computstat merge
-    get_crsp(DB, conn)
+
+    retrieve_table(DB,conn,'crspm','msf','crsp_monthly')
+    
+    retrieve_table(DB, conn, 'crspm', 'msfhdr', 'crsp_headings',
+        columns_to_pull=['hshrcd', 'hprimexc', 'begdat', 'enddat', 'permno'])
+    
+    retrieve_table(DB,conn,'crspm','mseall','crsp_hist_codes',
+        columns_to_pull=['shrcd', 'siccd', 'exchcd', 'primexch', 'permno','date']     )
+    
+    retrieve_table(DB, conn, 'compd', 'fundq', 'comp_quarter',
+                   columns_to_pull = comp_vars)
+    
+    retrieve_table(DB, conn, 'comp_bank', 'bank_fundq', 'comp_bank_quarter',
+                   columns_to_pull=['gvkey','dptcq','rdq'])
+    
+    retrieve_table(DB, conn, 'compd', 'funda', 'comp_annual',
+                   columns_to_pull=['gvkey','datadate','sich',
+                    'pstkrv','pstkl','capx','wcapch','sstk','dv','indfmt'])
+
+    retrieve_table(DB, conn, 'crsp_m_ccm', 'ccmxpf_lnkhist', 'ccm_linking_table',
+                   columns_to_pull=['gvkey', 'lpermno','linkdt','linkenddt'])
+
+    retrieve_table(DB, conn, 'comp', 'company', 'comp_current_sic',
+                   columns_to_pull=['gvkey', 'sic'])
+
     # Commit and close the connection
     conn.commit()
     cur.close()
     conn.close()
-
-def get_crsp(wrds,connection):
-    '''Pulls CRSP data from WRDS'''
-    #data = wrds.raw_sql('select distinct * from crspm.msfhdr')
-    print("Starting to pull CRSP Monthly")
-    data = wrds.raw_sql("""
-    select distinct * from crspm.msf
-    where (date >= '01Jan1971')  
-    """)
-
-    data.to_sql("crsp_monthly", connection, if_exists="replace",index = False)
-
-    data_headings = wrds.raw_sql("""
-    select distinct hshrcd, hprimexc, begdat, enddat, permno
-    from crspm.msfhdr;
-    """)
-
-    data_headings.to_sql("crsp_headings",connection, if_exists="replace",index = False)
-    print("CRSP Monthly Uploaded to Database")
 
 def create_client():
     """Create and configure a database client"""
     ibis.options.interactive = True
     ibis.options.sql.default_limit = None
     return ibis.sqlite.connect(SQLITE_FILE)
+
+def retrieve_table(wrds,connection,library,table,heading,columns_to_pull = 'all'):
+    """Pull the WRDS table using the get_table command and upload to SQL lite database"""
+    print("Pulling library: " + library + ", table: " + table)
+    if columns_to_pull == 'all':
+        wrds_table = wrds.get_table(library, table)
+    else:
+        wrds_table = wrds.get_table(library, table, columns=columns_to_pull)
+
+    wrds_table.drop_duplicates()
+    wrds_table.to_sql(heading, connection, if_exists="replace", index=False)
+    print("Finished pulling library: " + library + ", table: " + table)
 
 if __name__ == '__main__':
     main()
