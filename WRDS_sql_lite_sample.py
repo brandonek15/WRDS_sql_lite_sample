@@ -1,9 +1,7 @@
 '''
 #this will import the CRSP computstat related data straight from the WRDS server
 , do basic cleaning, and put it into the sqlite database.
-#Then it will do the same with the FRBNY CRSP/RSSD dataset
-#then it will do a complicated join operation to merge on RSSDs onto the permcos
-#At the end I will have a dataset with CRSP/Compustat merged with permcos
+#At the end I will have a dataset with CRSP/Compustat merged
 '''
 
 import pandas as pd
@@ -16,10 +14,10 @@ import numpy as np
 
 #Configurations for WRDS
 DB = wrds.Connection(wrds_username='blzborow')
+#Uncomment next line to create pgpass file
 #DB.create_pgpass_file()
 
 #Configurations for my directory
-#print(os.getcwd())
 #using os.path.join allows for flexibility with both Windows and Linux
 ROOT = 'C:\\Users\\Brand\\PycharmProjects\\WRDS_sql_lite_sample'
 SQLITE_FILE = os.path.join(ROOT,'sql_lite', 'database_wrds.sqlite')
@@ -48,7 +46,6 @@ COMP_VARS = ['datadate', 'fyearq', 'fqtr', 'rdq', 'atq', 'aul3q',
              'txpq', 'txtq', 'txditcq', 'costat', 'capxy', 'intanq',
              'prstkcy', 'aqcy', 'dvy', 'gvkey']
 
-#TODO update merge by using IBIS to merge all of the datasets together.
 def main():
 
     if PULL_RAW == 1:
@@ -59,15 +56,13 @@ def main():
     crsp_comp = merge_crsp_comp(client)
 
     #Execute executes the query
+    print("Beginning to execute query")
     crsp_comp_pd = crsp_comp.execute()
-    #crsp_comp_pd.to_pickle(PICKLE_PATH)
-    #crsp_comp_pd = pd.read_pickle(PICKLE_PATH)
-
+    print("Beginning to clean CCM data")
     cleaned_ccm = clean_ccm_merged(crsp_comp_pd)
 
     print(cleaned_ccm.columns)
     cleaned_ccm.to_csv(FINAL_DATA_PATH, index=False)
-
 
 def merge_crsp_comp(client):
     '''Merges crsp_compustat data'''
