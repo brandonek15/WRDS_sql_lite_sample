@@ -23,17 +23,27 @@ ROOT = 'C:\\Users\\Brand\\PycharmProjects\\WRDS_sql_lite_sample'
 SQLITE_FILE = os.path.join(ROOT,'sql_lite', 'database_wrds.sqlite')
 PICKLE_PATH = os.path.join(ROOT,'intermediate','post_merge.pkl')
 FINAL_DATA_PATH = os.path.join(ROOT,'sql_lite','final','crsp_compustat_merged.csv')
+FINAL_TICKER_PATH = os.path.join(ROOT,'sql_lite','final','crsp_tickers_2018Q4.csv')
 
 START_DATE = pd.to_datetime('1971-01-01')
 END_DATE = pd.to_datetime('2018-12-31')
 
 #Set to 1 if you want all of the raw data to be pulled
 PULL_RAW = 0
+MERGE_CRSP_COMPUSTAT = 0
+GET_TICKERS = 1
 
 #Changes directory
 os.chdir(ROOT)
 #Sets home environmanet
 os.environ['HOME'] = ROOT
+
+#Browse databases
+'''
+print(DB.list_tables(library="crspm"))
+print(DB.describe_table(library="crspm", table="mseall"))
+print("hello")
+'''
 
 COMP_VARS = ['datadate', 'fyearq', 'fqtr', 'rdq', 'atq', 'aul3q',
              'aol2q','capr1q','seqq','ceqq','chq','cheq','ltq',
@@ -51,18 +61,24 @@ def main():
     if PULL_RAW == 1:
         pull_raw()
 
-    # create each base expression
     client = create_client()
-    crsp_comp = merge_crsp_comp(client)
 
-    #Execute executes the query
-    print("Beginning to execute query")
-    crsp_comp_pd = crsp_comp.execute()
-    print("Beginning to clean CCM data")
-    cleaned_ccm = clean_ccm_merged(crsp_comp_pd)
+    if MERGE_CRSP_COMPUSTAT ==1:
 
-    print(cleaned_ccm.columns)
-    cleaned_ccm.to_csv(FINAL_DATA_PATH, index=False)
+        # create each base expression
+        crsp_comp = merge_crsp_comp(client)
+
+        #Execute executes the query
+        print("Beginning to execute query")
+        crsp_comp_pd = crsp_comp.execute()
+        print("Beginning to clean CCM data")
+        cleaned_ccm = clean_ccm_merged(crsp_comp_pd)
+
+        print(cleaned_ccm.columns)
+        cleaned_ccm.to_csv(FINAL_DATA_PATH, index=False)
+
+    if GET_TICKERS == 1:
+        get_tickers(client)
 
 def merge_crsp_comp(client):
     '''Merges crsp_compustat data'''
@@ -184,13 +200,14 @@ def pull_raw():
     cur = conn.cursor()
 
     # Add all of the data needed necessary to do the CRSP computstat merge
+
     retrieve_table(DB,conn,'crspm','msf','crsp_monthly')
     
     retrieve_table(DB, conn, 'crspm', 'msfhdr', 'crsp_headings',
         columns_to_pull=['hshrcd', 'hprimexc', 'begdat', 'enddat', 'permno'])
 
     retrieve_table(DB,conn,'crspm','mseall','crsp_hist_codes',
-        columns_to_pull=['shrcd', 'siccd', 'exchcd', 'primexch', 'permno','date'])
+        columns_to_pull=['shrcd', 'siccd', 'exchcd', 'primexch', 'permno','date','ticker','cusip'])
 
     retrieve_table(DB, conn, 'compd', 'fundq', 'comp_quarter',
                    columns_to_pull = COMP_VARS)
@@ -285,6 +302,15 @@ def clean_ccm_merged(df):
     #TODO make the annual data match up
 
     return df
+
+def get_tickers(client):
+    crsp_hist_codes = client.table('crsp_hist_codes')
+    crsp_hist_codes = crsp_hist_codes[crsp_hist_codes['date'] == END_DATE]
+    final_tickers = crsp_hist_codes[crsp_hist_codes['ticker'],crsp_hist_codes['cusip'],crsp_hist_codes['date']].distinct()
+    tickers_pd = final_tickers.execute()
+    tickers_pd = tickers_pd.dropna(subset=['cusip'])
+    tickers_pd.to_csv(FINAL_TICKER_PATH, index=False)
+    print("finished exporting tickers")
 
 if __name__ == '__main__':
     main()
