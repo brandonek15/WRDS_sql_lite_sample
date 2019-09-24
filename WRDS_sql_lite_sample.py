@@ -47,11 +47,12 @@ if not os.path.exists(os.path.join(ROOT,'sql_lite','final')):
     os.mkdir(os.path.join(ROOT,'sql_lite','final'))
 
 #Browse databases
-
+'''
+print(DB.list_libraries())
 print(DB.list_tables(library="crspm"))
 print(DB.describe_table(library="crspm", table="mseall"))
 print("hello")
-''''''
+'''
 
 COMP_VARS = ['datadate', 'fyearq', 'fqtr', 'rdq', 'atq', 'aul3q',
              'aol2q','capr1q','seqq','ceqq','chq','cheq','ltq',
@@ -209,25 +210,27 @@ def pull_raw():
 
     # Add all of the data needed necessary to do the CRSP computstat merge
 
-    retrieve_table(DB,conn,'crspm','msf','crsp_monthly')
+    retrieve_table(DB,conn,'crspq','msf','crsp_monthly')
 
-    retrieve_table(DB, conn, 'crspm', 'msfhdr', 'crsp_headings',
+    retrieve_table(DB, conn, 'crspq', 'msfhdr', 'crsp_headings',
         columns_to_pull=['hshrcd', 'hprimexc', 'begdat', 'enddat', 'permno'])
 
-    retrieve_table(DB,conn,'crspm','mseall','crsp_hist_codes',
+    retrieve_table(DB,conn,'crspq','mseall','crsp_hist_codes',
         columns_to_pull=['shrcd', 'siccd', 'exchcd', 'primexch', 'permno','date','ticker','cusip'])
-
-    retrieve_table(DB, conn, 'compd', 'fundq', 'comp_quarter',
+    
+    #Believe that I should be pulling from compd instead of comp
+    retrieve_table(DB, conn, 'comp', 'fundq', 'comp_quarter',
                    columns_to_pull = COMP_VARS)
 
     retrieve_table(DB, conn, 'comp_bank', 'bank_fundq', 'comp_bank_quarter',
                    columns_to_pull=['gvkey','dptcq','rdq'])
-
-    retrieve_table(DB, conn, 'compd', 'funda', 'comp_annual',
+    
+    # Believe that I should be pulling from compd instead of comp
+    retrieve_table(DB, conn, 'comp', 'funda', 'comp_annual',
                    columns_to_pull=['gvkey','datadate','sich',
                     'pstkrv','pstkl','capx','wcapch','sstk','dv','indfmt'])
 
-    retrieve_table(DB, conn, 'crsp_m_ccm', 'ccmxpf_lnkhist', 'ccm_linking_table',
+    retrieve_table(DB, conn, 'crsp_q_ccm', 'ccmxpf_lnkhist', 'ccm_linking_table',
                    columns_to_pull=['gvkey', 'lpermno','linkdt','linkenddt','linktype'])
 
     retrieve_table(DB, conn, 'comp', 'company', 'comp_current_sic',
