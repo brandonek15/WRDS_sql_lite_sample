@@ -11,15 +11,15 @@ import wrds
 import ibis
 import numpy as np
 
-
 #Configurations for WRDS
-DB = wrds.Connection(wrds_username='blzborow')
+DB = wrds.Connection(wrds_username='zborowsk')
 #Uncomment next line to create pgpass file
 #DB.create_pgpass_file()
 
 #Configurations for my directory
 #using os.path.join allows for flexibility with both Windows and Linux
-ROOT = 'C:\\Users\\Brand\\PycharmProjects\\WRDS_sql_lite_sample'
+#ROOT = 'C:\\Users\\Brand\\PycharmProjects\\WRDS_sql_lite_sample'
+ROOT = '/home/blz782/PycharmProjects/WRDS_sql_lite_sample'
 SQLITE_FILE = os.path.join(ROOT,'sql_lite', 'database_wrds.sqlite')
 PICKLE_PATH = os.path.join(ROOT,'intermediate','post_merge.pkl')
 FINAL_DATA_PATH = os.path.join(ROOT,'sql_lite','final','crsp_compustat_merged.csv')
@@ -29,21 +29,29 @@ START_DATE = pd.to_datetime('1971-01-01')
 END_DATE = pd.to_datetime('2018-12-31')
 
 #Set to 1 if you want all of the raw data to be pulled
-PULL_RAW = 0
+PULL_RAW = 1
 MERGE_CRSP_COMPUSTAT = 0
-GET_TICKERS = 1
+GET_TICKERS = 0
 
 #Changes directory
 os.chdir(ROOT)
 #Sets home environmanet
 os.environ['HOME'] = ROOT
 
+#Create directories if they don't exist
+if not os.path.exists(os.path.join(ROOT,'sql_lite')):
+    os.mkdir(os.path.join(ROOT,'sql_lite'))
+if not os.path.exists(os.path.join(ROOT,'intermediate')):
+    os.mkdir(os.path.join(ROOT,'intermediate'))
+if not os.path.exists(os.path.join(ROOT,'sql_lite','final')):
+    os.mkdir(os.path.join(ROOT,'sql_lite','final'))
+
 #Browse databases
-'''
+
 print(DB.list_tables(library="crspm"))
 print(DB.describe_table(library="crspm", table="mseall"))
 print("hello")
-'''
+''''''
 
 COMP_VARS = ['datadate', 'fyearq', 'fqtr', 'rdq', 'atq', 'aul3q',
              'aol2q','capr1q','seqq','ceqq','chq','cheq','ltq',
@@ -202,7 +210,7 @@ def pull_raw():
     # Add all of the data needed necessary to do the CRSP computstat merge
 
     retrieve_table(DB,conn,'crspm','msf','crsp_monthly')
-    
+
     retrieve_table(DB, conn, 'crspm', 'msfhdr', 'crsp_headings',
         columns_to_pull=['hshrcd', 'hprimexc', 'begdat', 'enddat', 'permno'])
 
@@ -211,10 +219,10 @@ def pull_raw():
 
     retrieve_table(DB, conn, 'compd', 'fundq', 'comp_quarter',
                    columns_to_pull = COMP_VARS)
-    
+
     retrieve_table(DB, conn, 'comp_bank', 'bank_fundq', 'comp_bank_quarter',
                    columns_to_pull=['gvkey','dptcq','rdq'])
-    
+
     retrieve_table(DB, conn, 'compd', 'funda', 'comp_annual',
                    columns_to_pull=['gvkey','datadate','sich',
                     'pstkrv','pstkl','capx','wcapch','sstk','dv','indfmt'])
@@ -237,6 +245,7 @@ def create_client():
     #For testing, set to 10000
     #ibis.options.sql.default_limit = 10000
     return ibis.sqlite.connect(SQLITE_FILE)
+    print("hell0")
 
 def retrieve_table(wrds,connection,library,table,heading,columns_to_pull = 'all'):
     """Pull the WRDS table using the get_table command and upload to SQL lite database"""
