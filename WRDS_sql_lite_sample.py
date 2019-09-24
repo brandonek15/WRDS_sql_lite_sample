@@ -19,7 +19,7 @@ DB = wrds.Connection(wrds_username='zborowsk')
 #Configurations for my directory
 #using os.path.join allows for flexibility with both Windows and Linux
 #ROOT = 'C:\\Users\\Brand\\PycharmProjects\\WRDS_sql_lite_sample'
-ROOT = '/home/blz782/PycharmProjects/WRDS_sql_lite_sample'
+ROOT = '/home/blz782/PycharmProjects/WRDS_sample'
 SQLITE_FILE = os.path.join(ROOT,'sql_lite', 'database_wrds.sqlite')
 PICKLE_PATH = os.path.join(ROOT,'intermediate','post_merge.pkl')
 FINAL_DATA_PATH = os.path.join(ROOT,'sql_lite','final','crsp_compustat_merged.csv')
