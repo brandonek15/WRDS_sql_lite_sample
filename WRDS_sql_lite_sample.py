@@ -29,9 +29,9 @@ START_DATE = pd.to_datetime('1971-01-01')
 END_DATE = pd.to_datetime('2018-12-31')
 
 #Set to 1 if you want all of the raw data to be pulled
-PULL_RAW = 1
-MERGE_CRSP_COMPUSTAT = 0
-GET_TICKERS = 0
+PULL_RAW = 0
+MERGE_CRSP_COMPUSTAT = 1
+GET_TICKERS = 1
 
 #Changes directory
 os.chdir(ROOT)
